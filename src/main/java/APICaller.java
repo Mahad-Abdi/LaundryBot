@@ -6,15 +6,32 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class APICaller {
+    /**
+     *  The website has information contains the dorm name and an associated ID on the API that we are calling to\
+     *  And the ID is constant, so we only need to employ the name correctly;
+     */
+    private static HashMap<String, Integer> DormID;
+    static {
+        DormID = new HashMap<String, Integer>();
+        DormID.put("66",2980914);
+        DormID.put("2nd_floor_2k",29809029);
+        DormID.put("Gabelli",2980917);
+    }
+
+    private URL combine_URL(URL url, Map dorms, String dormname) throws MalformedURLException {
+        String newURL = url.toString() + dorms.getOrDefault(dormname,"");
+        return new URL(newURL);
+    }
+
     public static void main(String[] args) throws IOException {
         // Split two blocks of code into two functions
         // Gets the data from the api for one laundry room, you probably want to replace that with a string
-        URL url = new URL("https://www.laundryview.com/api/currentRoomData?school_desc_key=12&location=298095&rdm=1670386001696");
+        URL url = new URL("https://www.laundryview.com/api/currentRoomData?school_desc_key=12&location=");
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("GET");
         conn.connect();
