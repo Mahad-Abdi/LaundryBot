@@ -19,6 +19,7 @@ dependencies {
     implementation "com.sparkjava:spark-core:2.9.4"
     implementation "org.slf4j:slf4j-simple:1.7.9"
     implementation 'org.jsoup:jsoup:1.15.3'
+
 }
 
 test {

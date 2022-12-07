@@ -1,13 +1,8 @@
 import com.twilio.Twilio;
-
-import java.time.ZoneId;
 import java.time.ZonedDateTime;
-// added with the chatbot
-
 import com.twilio.base.ResourceSet;
 import com.twilio.rest.api.v2010.account.Message;
 import com.twilio.type.PhoneNumber;
-
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 
