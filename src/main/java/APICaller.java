@@ -31,7 +31,10 @@ public class APICaller {
     public static void main(String[] args) throws IOException {
         // Split two blocks of code into two functions
         // Gets the data from the api for one laundry room, you probably want to replace that with a string
+        APICaller useAPI = new APICaller() ;
         URL url = new URL("https://www.laundryview.com/api/currentRoomData?school_desc_key=12&location=");
+        url = useAPI.combine_URL(url,DormID,"66");
+
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestMethod("GET");
         conn.connect();
@@ -43,6 +46,19 @@ public class APICaller {
         ObjectMapper mapper = new ObjectMapper();
         mapper.enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
         List<Map<String, Object>> data = mapper.readValue(jsonData, new TypeReference<>(){});
+        System.out.println("The data itself has a type of " + data.getClass());
+        System.out.println("The data[0] has the size of " + data.get(0).size());
+        System.out.println("The data[0] has the " + data.get(0).entrySet());
+        System.out.println("The data[0] get objects has a type of" + data.get(0).get("objects").size());
+        System.out.println(data);
+        System.out.println(data.get(0).get("objects"));
+        String saver = data.get(0).get("objects").toString();
+        System.out.println(saver.length());
+        String[] value = saver.split("[ | { | } | ]");
+        System.out.println(value.length);
+        for(int i = 3; i < 18; i++) {
+            System.out.println(value[i]);
+        }
 
 
 
