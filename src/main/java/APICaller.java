@@ -55,7 +55,7 @@ public class APICaller {
         return jsonData;
     }
 
-    private List<Map<String,Object>> getVallue(ObjectMapper mapper, String jsonData) throws JsonProcessingException {
+    private List<Map<String,Object>> getValue(ObjectMapper mapper, String jsonData) throws JsonProcessingException {
         mapper.enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
         List<Map<String, Object>> data = mapper.readValue(jsonData, new TypeReference<>(){});
         return data;
@@ -65,6 +65,7 @@ public class APICaller {
         String object = data.get(0).get("objects").toString();
         object = object.substring(1, object.length()-1);
         ArrayList<String> dataParsed = new ArrayList<>();
+        getContent(object);
         return dataParsed;
     }
 
@@ -149,13 +150,11 @@ public class APICaller {
         // This is the link for voute, 66 says its unavailable so I commented out the line below
         URL url = new URL("https://www.laundryview.com/api/currentRoomData?school_desc_key=12&location=");
         url = useAPI.combine_URL(url,DormID,"Gabelli");
-
         // used the following sources - https://stackoverflow.com/questions/44698437/map-json-to-listmapstring-object
         String jsonData = useAPI.connection(url);
-
         ObjectMapper mapper = new ObjectMapper();
-        mapper.enable(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY);
-        List<Map<String, Object>> data = mapper.readValue(jsonData, new TypeReference<>(){});
+        List<Map<String, Object>> data = useAPI.getValue(mapper,jsonData);
+
         // Gets the objects from the hashmap
         String object = data.get(0).get("objects").toString();
         object = object.substring(1, object.length()-1);
