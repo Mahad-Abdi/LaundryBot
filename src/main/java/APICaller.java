@@ -34,6 +34,8 @@ public class APICaller {
         DormID.put("66",2980914);
         DormID.put("2nd_floor_2k",29809029);
         DormID.put("Gabelli",2980917);
+        DormID.put("GreyCliff",2980918);
+        DormID.put("Mods",2980920);
         DormID.put("Voute",2980923);
     }
     private static HttpURLConnection conn;
@@ -268,19 +270,22 @@ public class APICaller {
         URL url = new URL("https://www.laundryview.com/api/currentRoomData?school_desc_key=12&location=");
 
         ArrayList<ArrayList<String>> master_info = new ArrayList<>();
-        ArrayList<String> AvailableInfo = useAPI.get_laundry_info_building(url,DormID,"Gabelli");
-        System.out.println(AvailableInfo);
 
-        master_info.add(AvailableInfo);
-        ArrayList<String> AvailableInfo2 = useAPI.get_laundry_info_building(url,DormID,"Voute");
-        System.out.println(AvailableInfo2);
-        master_info.add(AvailableInfo2);
+
+        String[] dormInfo = {"GreyCliff","Mods","Gabelli", "Voute"};
+        for(int i = 0; i < dormInfo.length; i++) {
+            ArrayList<String> AvailableInfo = new ArrayList<>();
+            AvailableInfo = useAPI.get_laundry_info_building(url,DormID,dormInfo[i]);
+            System.out.println(AvailableInfo);
+            master_info.add(AvailableInfo);
+        }
 
         File all_washer_info = useAPI.set_info("DormInfo.csv");
         useAPI.writeCSV(all_washer_info,master_info);
 
         ArrayList<ArrayList<String>> dormInfos = useAPI.extractCSV(all_washer_info);
-        System.out.println(dormInfos.get(0).getClass());
+        System.out.println(dormInfos.get(0));
+
 
 
 
