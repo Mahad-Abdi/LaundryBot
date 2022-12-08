@@ -34,6 +34,7 @@ public class APICaller {
         DormID.put("66",2980914);
         DormID.put("2nd_floor_2k",29809029);
         DormID.put("Gabelli",2980917);
+        DormID.put("Voute",2980923);
     }
     private static HttpURLConnection conn;
     private File all_washer_info;
@@ -233,9 +234,9 @@ public class APICaller {
     private ArrayList<ArrayList<String>> getInfo(File dorminfo) throws IOException {
         CSVReader reader = new CSVReader(new FileReader("DormInfo.csv"));
         List<String[]> values = reader.readAll();
-        ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>;
+       // ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>;
         for(String[] element : values) {
-            result.add((ArrayList<String>) Arrays.asList(element));
+           // result.add((ArrayList<String>) Arrays.asList(element));
         }
         return null;
     }
@@ -244,11 +245,35 @@ public class APICaller {
 
     }
 
+    /**
+     * This is a big method that combines everything we have done in the helper function, that returns a list of strings
+     * that contains the dorm name information, per building, which is what will be called over and over again,
+     *
+     */
+    private ArrayList<String> get_laundry_info_building(URL url, Map dorms, String dormname) throws IOException {
+        url = combine_URL(url,dorms,dormname);
+        String jsonData = connection(url);
+        ObjectMapper mapper = new ObjectMapper();
+        List<Map<String, Object>> data = getValue(mapper,jsonData);
+        ArrayList<String> dataParsed = parseData(data);
+        // Converts the arraylist to a list of hashmaps
+        ArrayList<Map<String, String>> finalData = generateFinalData(dataParsed);
+        String info = "time_left_lite";
+        ArrayList<String> AvailableInfo = getAvailability(finalData,"W",info,dormname);
+        return AvailableInfo;
+    }
     public static void main(String[] args) throws IOException {
         APICaller useAPI = new APICaller() ;
         // This is the link for voute, 66 says its unavailable so I commented out the line below
         URL url = new URL("https://www.laundryview.com/api/currentRoomData?school_desc_key=12&location=");
-        url = useAPI.combine_URL(url,DormID,"Gabelli");
+
+        ArrayList<String> AvailableInfo = useAPI.get_laundry_info_building(url,DormID,"Gabelli");
+        System.out.println(AvailableInfo);
+
+        ArrayList<String> AvailableInfo2 = useAPI.get_laundry_info_building(url,DormID,"Voute");
+        System.out.println(AvailableInfo2);
+
+       /* url = useAPI.combine_URL(url,DormID,"Gabelli");
         // used the following sources - https://stackoverflow.com/questions/44698437/map-json-to-listmapstring-object
         String jsonData = useAPI.connection(url);
         ObjectMapper mapper = new ObjectMapper();
@@ -263,11 +288,11 @@ public class APICaller {
         for(Map<String, String> map: finalData) {
             System.out.println("hashmap number: " + count + " appliance type: " + map.get("appliance_type") + " availability/time left " + map.get("time_left_lite"));
             count++;
-        }
+        }*/
 
         File all_washer_info = useAPI.set_info("DormInfo.csv");
         useAPI.initialwriteCSV(all_washer_info,AvailableInfo);
-
+        useAPI.getInfo(all_washer_info);
 
 
 
