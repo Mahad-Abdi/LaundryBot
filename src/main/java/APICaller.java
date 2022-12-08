@@ -65,7 +65,7 @@ public class APICaller {
         String object = data.get(0).get("objects").toString();
         object = object.substring(1, object.length()-1);
         ArrayList<String> dataParsed = new ArrayList<>();
-        getContent(object);
+        dataParsed = getContent(object);
         return dataParsed;
     }
 
@@ -107,35 +107,61 @@ public class APICaller {
         return finalData;
     }
 
-    private ArrayList<String> getAvailability(ArrayList<Map<String, String>> finalData) {
+    /**
+     * This is the method that uses too get the availability for both washer and the drier, the second dynamic string type is used to determine either washer or dryer
+     * @param finalData
+     * @param type
+     * @return
+     */
+    private ArrayList<String> getAvailability(ArrayList<Map<String, String>> finalData, String type, String info, String dormname) throws IOException{
         ArrayList<String> availabilityinfo = new ArrayList<String>();
-        int currentNumWasher = 0;
+       int currentMachine = 0;
         int closetMinute = 0;
         int numNotWorking = 0;
-        var current = Instant.now();
+        var current = Instant.now();   //&& (map.get("appliance type:").equals(type))
         for(Map<String, String> map: finalData) {
-            if(map.get("time_left_lite").equals("Available")) {
-                currentNumWasher ++;
-            } else if(map.get("time_left_lite").equals("Out of Service")){
-                numNotWorking++;
-            } else {
-                String[] characters = map.get("time_left_lite").split("\\s+"); //We get the actual characters by splitting
-                if(Integer.parseInt(characters[0]) >= closetMinute && closetMinute == 0) {
-                    closetMinute = Integer.parseInt(characters[0]);
-                } else if(Integer.parseInt(characters[0]) <= closetMinute) {
-                    closetMinute = Integer.parseInt(characters[0]);
+            if (map.get(info) != null) {
+                if (map.get(info).equals("Available")) {
+                    currentMachine++;
+                } else if (map.get(info).equals("Out of Service")) {
+                    numNotWorking++;
+                } else {//Then the rest of the machine, is occupied, with a time limit
+                    String[] characters = map.get("time_left_lite").split("\\s+"); //We get the actual characters by splitting
+                    if (characters[1].equals("min")) { //This is guranteed to be in format of xx min remaining
+                        if (Integer.parseInt(characters[0]) >= closetMinute && closetMinute == 0) {
+                            closetMinute = Integer.parseInt(characters[0]);
+                        } else if (Integer.parseInt(characters[0]) <= closetMinute) {
+                            closetMinute = Integer.parseInt(characters[0]);
+                        }
+                    }
                 }
             }
+            //System.out.println(map.get(info).getClass());
+            //System.out.println(map.get(info));
             current = Instant.now();
-            if(currentNumWasher == 0) { //This means that the currentNum Washer is unavailable, so must loop through
-                current  = current.plus(closetMinute,ChronoUnit.MINUTES);
+            if (currentMachine == 0) { //This means that the currentNum Washer is unavailable, so must loop through
+                current = current.plus(closetMinute, ChronoUnit.MINUTES);
             }
-        } //Now we have looped through the availability, and we should be able to put them into a single list
+        }
+        //Now we have looped through the availability, and we should be able to put them into a single list
         //The first part is to deal with the formatting of the time, we only care about the hour and the minute,
         availabilityinfo.add(formatting(current));
+
+        availabilityinfo.add(dormname);
+        availabilityinfo.add(String.valueOf(currentMachine));
+        if(currentMachine != 0) {
+            availabilityinfo.add("");
+        } else {
+            availabilityinfo.add(closetMinute + " minute to the first washing machine");
+        }
         return availabilityinfo;
     }
 
+    /**
+     *  To standardize the time format, as the standrdize the time, not the actual
+     * @param  time parameter is an instant object,
+     * @return The hour: minute format, in EST time zone
+     */
     private String formatting(Instant time) {
         ZoneId EST = ZoneId.of("US/Eastern");
         ZonedDateTime BCTime = ZonedDateTime.ofInstant(time,EST);
@@ -155,36 +181,21 @@ public class APICaller {
         ObjectMapper mapper = new ObjectMapper();
         List<Map<String, Object>> data = useAPI.getValue(mapper,jsonData);
 
-        // Gets the objects from the hashmap
-        String object = data.get(0).get("objects").toString();
-        object = object.substring(1, object.length()-1);
-        // Parses the objects into a list of strings most of which contain information about the washers and dryers by using { } to delineate, some of the information has to do with displaying the web page
-        ArrayList<String> dataParsed = new ArrayList<>();
-        for(int i = 0; i < object.length(); i ++) {
-            int startIndex = 0;
-            int endIndex = 0;
-            if(object.charAt(i) == '{') {
-                startIndex = i+1;
-                while(i < object.length()) {
-                    if(object.charAt(i) == '}') {
-                        endIndex = i;
-                        dataParsed.add(object.substring(startIndex,endIndex));
-                        break;
-                    }
-                    i++;
-                }
-                i -=1;
-            }
-        }
+        ArrayList<String> dataParsed = useAPI.parseData(data);
 
         // Converts the arraylist to a list of hashmaps
-        ArrayList<Map<String, String>> finalData = new ArrayList<Map<String, String>>();
+        ArrayList<Map<String, String>> finalData =useAPI.generateFinalData(dataParsed);
+        String info = "time_left_lite";
+        ArrayList<String> AvailableInfo = useAPI.getAvailability(finalData,"W",info,"Gabelli");
+        //System.out.println("The following line is the list that contains the washing machine information at Gabelli Hall");
+        System.out.println(AvailableInfo);
+        /*ArrayList<Map<String, String>> finalData = new ArrayList<Map<String, String>>();
         for(String str: dataParsed) {
             Map<String, String> hmap = Splitter.on(", ")
                     .withKeyValueSeparator("=")
                     .split(str);
             finalData.add(hmap);
-        }
+        }*/
         int count = 1;
         /* Now all you have to do is use this hashmap to determine the number of washer's available and the availability of the next washer (using a time representation but in string format)
         if washer's are available then the availability would be zero, add this to a list of lists, and then convert that list of lists to a file, and then convert that file back to a list of lists (which I will use in my code)
@@ -193,10 +204,10 @@ public class APICaller {
             System.out.println("hashmap number: " + count + " appliance type: " + map.get("appliance_type") + " availability/time left " + map.get("time_left_lite"));
             count++;
         }
-        System.out.println(" Now all you have to do is use this hashmap to determine the number of washer's available and the availability of the next washer (using a time representation but in string format)\n" +
+        /*System.out.println(" Now all you have to do is use this hashmap to determine the number of washer's available and the availability of the next washer (using a time representation but in string format)\n" +
                 "if washer's are available then the availability would be zero, add this to a list of lists, and then convert that list of lists to a file, \n" +
                 " and then convert that file back to a list of lists (which I will use in my code) ");
-
+        */
 
 
 
