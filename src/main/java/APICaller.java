@@ -241,8 +241,18 @@ public class APICaller {
         return null;
     }
 
-    private void extractCSV() {
-
+    private ArrayList<ArrayList<String>> extractCSV(File filename) throws IOException {
+        ArrayList<ArrayList<String>> data = new ArrayList<ArrayList<String>>();
+        String testRow;
+        BufferedReader br = new BufferedReader(new FileReader(filename));
+        // Read data as long as it's not empty
+        // Parse the data by comma using .split() method
+        // Place into a temporary array, then add to List
+        while ((testRow = br.readLine()) != null) {
+            String[] line = testRow.split(",");
+            data.add(new ArrayList<>(Arrays.asList(line)));
+        }
+        return data;
     }
 
     /**
@@ -273,17 +283,7 @@ public class APICaller {
         ArrayList<String> AvailableInfo2 = useAPI.get_laundry_info_building(url,DormID,"Voute");
         System.out.println(AvailableInfo2);
 
-       /* url = useAPI.combine_URL(url,DormID,"Gabelli");
-        // used the following sources - https://stackoverflow.com/questions/44698437/map-json-to-listmapstring-object
-        String jsonData = useAPI.connection(url);
-        ObjectMapper mapper = new ObjectMapper();
-        List<Map<String, Object>> data = useAPI.getValue(mapper,jsonData);
-        ArrayList<String> dataParsed = useAPI.parseData(data);
-        // Converts the arraylist to a list of hashmaps
-        ArrayList<Map<String, String>> finalData =useAPI.generateFinalData(dataParsed);
-        String info = "time_left_lite";
-        ArrayList<String> AvailableInfo = useAPI.getAvailability(finalData,"W",info,"Gabelli");
-        System.out.println(AvailableInfo);
+       /*
         int count = 1;
         for(Map<String, String> map: finalData) {
             System.out.println("hashmap number: " + count + " appliance type: " + map.get("appliance_type") + " availability/time left " + map.get("time_left_lite"));
@@ -293,6 +293,10 @@ public class APICaller {
         File all_washer_info = useAPI.set_info("DormInfo.csv");
         useAPI.initialwriteCSV(all_washer_info,AvailableInfo);
         useAPI.getInfo(all_washer_info);
+        System.out.println(all_washer_info);
+
+        ArrayList<ArrayList<String>> dormInfos = useAPI.extractCSV(all_washer_info);
+        System.out.println(dormInfos.get(0).getClass());
 
 
 
