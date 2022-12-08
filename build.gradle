@@ -20,6 +20,8 @@ dependencies {
     implementation "org.slf4j:slf4j-simple:1.7.9"
     implementation 'org.jsoup:jsoup:1.15.3'
     implementation("com.google.guava:guava:31.1-jre")
+    implementation  "com.opencsv:opencsv:4.0"
+
 
 }
 
