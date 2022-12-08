@@ -44,6 +44,14 @@ public class APICaller {
         return all_washer_info;
     }
 
+    /**
+     *
+     * @param url, a fixed url, but included here for concatenation purposes
+     * @param dorms, this is a dorm that contains the ID and the name, which is used to determine the ID to attach to the website
+     * @param dormname This is the actual dorm that we want to scrape on
+     * @return
+     * @throws MalformedURLException
+     */
     private URL combine_URL(URL url, Map dorms, String dormname) throws MalformedURLException {
         String newURL = url.toString() + dorms.getOrDefault(dormname,"");
         return new URL(newURL);
@@ -68,8 +76,8 @@ public class APICaller {
 
     /**
      * This is the method that is used to actually read whatever that is presented on the website we are scraping from, and it is formatted as a String
-     * @param mapper
-     * @param jsonData
+     * @param mapper This is collected in the main method that is designed to help make the transform of the data
+     * @param jsonData The string that contains all the information from the page, source,
      * @return
      * @throws JsonProcessingException
      */
@@ -171,6 +179,11 @@ public class APICaller {
                 current = current.plus(closetMinute, ChronoUnit.MINUTES);
             }
         }
+        /**
+         * The rest of the code is dedicated to get the relevant information, such as the scraping time, the dorm name
+         * how many washers are available, and if there are available washing machines, then we will ignore the last field
+         * If not, we will put an extra field, telling the user when is the closet washing machine be ready
+         */
         availabilityinfo.add(formatting(current));
         availabilityinfo.add(dormname);
         availabilityinfo.add(String.valueOf(currentMachine));
@@ -191,64 +204,32 @@ public class APICaller {
         ZoneId EST = ZoneId.of("US/Eastern");
         ZonedDateTime BCTime = ZonedDateTime.ofInstant(time,EST);
         LocalDateTime ldt = LocalDateTime.ofInstant(time, EST);//We do want to get the time in EST
-        return ldt.getHour() + ":" + ldt.getMinute();
+        return String.format("%02d:%02d",ldt.getHour(),ldt.getMinute());
     }
 
     /**
-     * We are intended to store and make updates to the csv file, but this is an initial version, then the rest will be called repetetively
-     * They key difference here is that instead of writing an array into the csv file that is being stored in the array, we are actually,
-     * trying to write every entry into the csv file, as an array that contains the dorm information from previous operations
-     * @param name, this is used for setting the name purpose
-     * @param dorm_laundry_info, this is the list that contains all the informtaion, structured in the way we wanted in our project;
-     * @throws IOException, technically should never happen
+     *
+     * @param name This is the name of the file that we are trying to write on
+     * @param all_dorm_laundry_info, this is the arraylist that conatins all the dorm information, which every single
+     *                               dorm is stored as an array list, so this is a list of list
+     * @throws IOException   Probably need to deal with this, but for simplicity, we will ignore this writing
      */
-    private void initialwriteCSV(File name, ArrayList<String> dorm_laundry_info) throws IOException {
+    private void writeCSV(File name, ArrayList<ArrayList<String>> all_dorm_laundry_info) throws IOException {
         CSVWriter writer = new CSVWriter(new FileWriter(name));
-        writer.writeNext(dorm_laundry_info.toArray(new String[0]));
-        writer.close();
-    }
-
-    /**
-     * We are making changes to the csv file by adding additional dorm laundry info to the csv file
-     * @param name
-     * @param dorm_laundry_info
-     * @throws IOException
-     */
-    private void updateCSV(File name, ArrayList<String> dorm_laundry_info) throws IOException {
-        CSVReader reader = new CSVReader(new FileReader("DormInfo.csv"));
-        List<String[]> r = reader.readAll(); //Now we have read all previous data.
-        CSVWriter writer = new CSVWriter(new FileWriter(name));
-        for(String[] column : r) {
-            writer.writeNext(column);
+        for(ArrayList<String> single_dorm : all_dorm_laundry_info) {
+            writer.writeNext(single_dorm.toArray((new String[0])));
         }
-        writer.writeNext(dorm_laundry_info.toArray(new String[0]));
         writer.close();
-    }
-
-    /**
-     * This method is supposed to extract the information of the csv file, which is stored as a list of lists
-     * @param dorminfo
-     * @return
-     * @throws IOException
-     */
-    private ArrayList<ArrayList<String>> getInfo(File dorminfo) throws IOException {
-        CSVReader reader = new CSVReader(new FileReader("DormInfo.csv"));
-        List<String[]> values = reader.readAll();
-       // ArrayList<ArrayList<String>> result = new ArrayList<ArrayList<String>>;
-        for(String[] element : values) {
-           // result.add((ArrayList<String>) Arrays.asList(element));
-        }
-        return null;
     }
 
     private ArrayList<ArrayList<String>> extractCSV(File filename) throws IOException {
-        ArrayList<ArrayList<String>> data = new ArrayList<ArrayList<String>>();
+        ArrayList<ArrayList<String>> data = new ArrayList<>();
         String testRow;
-        BufferedReader br = new BufferedReader(new FileReader(filename));
-        // Read data as long as it's not empty
-        // Parse the data by comma using .split() method
-        // Place into a temporary array, then add to List
-        while ((testRow = br.readLine()) != null) {
+        BufferedReader reader = new BufferedReader(new FileReader(filename));
+        /**Read data as long as it's not empty
+        Parse the data by comma using .split() method
+         Place into a temporary array, then add to List**/
+        while ((testRow = reader.readLine()) != null) {
             String[] line = testRow.split(",");
             data.add(new ArrayList<>(Arrays.asList(line)));
         }
@@ -272,28 +253,31 @@ public class APICaller {
         ArrayList<String> AvailableInfo = getAvailability(finalData,"W",info,dormname);
         return AvailableInfo;
     }
+
+    /**
+     * The laundry information is dynamic, so it will be necessary to scrape at a frequent time interval
+     * which is currently set to 10 minutes
+     * @param ttl refers to time to live, meaning how valid the result is before we have to rescrape
+     */
+    private void rescrape(int ttl) {
+
+    }
     public static void main(String[] args) throws IOException {
         APICaller useAPI = new APICaller() ;
         // This is the link for voute, 66 says its unavailable so I commented out the line below
         URL url = new URL("https://www.laundryview.com/api/currentRoomData?school_desc_key=12&location=");
 
+        ArrayList<ArrayList<String>> master_info = new ArrayList<>();
         ArrayList<String> AvailableInfo = useAPI.get_laundry_info_building(url,DormID,"Gabelli");
         System.out.println(AvailableInfo);
 
+        master_info.add(AvailableInfo);
         ArrayList<String> AvailableInfo2 = useAPI.get_laundry_info_building(url,DormID,"Voute");
         System.out.println(AvailableInfo2);
-
-       /*
-        int count = 1;
-        for(Map<String, String> map: finalData) {
-            System.out.println("hashmap number: " + count + " appliance type: " + map.get("appliance_type") + " availability/time left " + map.get("time_left_lite"));
-            count++;
-        }*/
+        master_info.add(AvailableInfo2);
 
         File all_washer_info = useAPI.set_info("DormInfo.csv");
-        useAPI.initialwriteCSV(all_washer_info,AvailableInfo);
-        useAPI.getInfo(all_washer_info);
-        System.out.println(all_washer_info);
+        useAPI.writeCSV(all_washer_info,master_info);
 
         ArrayList<ArrayList<String>> dormInfos = useAPI.extractCSV(all_washer_info);
         System.out.println(dormInfos.get(0).getClass());
