@@ -47,7 +47,6 @@ public class APICaller {
     }
 
     /**
-     *
      * @param url, a fixed url, but included here for concatenation purposes
      * @param dorms, this is a dorm that contains the ID and the name, which is used to determine the ID to attach to the website
      * @param dormname This is the actual dorm that we want to scrape on
@@ -99,7 +98,7 @@ public class APICaller {
     private ArrayList<String> parseData(List<Map<String,Object>> data) {
         String object = data.get(0).get("objects").toString();
         object = object.substring(1, object.length()-1);
-        ArrayList<String> dataParsed = new ArrayList<>();
+        ArrayList<String> dataParsed;
         dataParsed = getContent(object);
         return dataParsed;
     }
@@ -238,6 +237,9 @@ public class APICaller {
         return data;
     }
 
+    private void rewrite() {
+
+    }
     /**
      * This is a big method that combines everything we have done in the helper function, that returns a list of strings
      * that contains the dorm name information, per building, which is what will be called over and over again,
@@ -264,34 +266,28 @@ public class APICaller {
     private void rescrape(int ttl) {
 
     }
-    public static void main(String[] args) throws IOException {
-        APICaller useAPI = new APICaller() ;
-        // This is the link for voute, 66 says its unavailable so I commented out the line below
-        URL url = new URL("https://www.laundryview.com/api/currentRoomData?school_desc_key=12&location=");
+    public static void main(String[] args) throws IOException, InterruptedException {
+        while (true) {
+            APICaller useAPI = new APICaller();
+            // This is the link for voute, 66 says its unavailable so I commented out the line below
+            URL url = new URL("https://www.laundryview.com/api/currentRoomData?school_desc_key=12&location=");
 
-        ArrayList<ArrayList<String>> master_info = new ArrayList<>();
+            ArrayList<ArrayList<String>> master_info = new ArrayList<>();
+            String[] dormInfo = {"GreyCliff", "Mods", "Gabelli", "Voute"};
+            for (int i = 0; i < dormInfo.length; i++) {
+                ArrayList<String> AvailableInfo = new ArrayList<>();
+                AvailableInfo = useAPI.get_laundry_info_building(url, DormID, dormInfo[i]);
+                System.out.println(AvailableInfo);
+                master_info.add(AvailableInfo);
+            }
 
+            File all_washer_info = useAPI.set_info("DormInfo.csv");
+            useAPI.writeCSV(all_washer_info, master_info);
 
-        String[] dormInfo = {"GreyCliff","Mods","Gabelli", "Voute"};
-        for(int i = 0; i < dormInfo.length; i++) {
-            ArrayList<String> AvailableInfo = new ArrayList<>();
-            AvailableInfo = useAPI.get_laundry_info_building(url,DormID,dormInfo[i]);
-            System.out.println(AvailableInfo);
-            master_info.add(AvailableInfo);
+            ArrayList<ArrayList<String>> dormInfos = useAPI.extractCSV(all_washer_info);
+            System.out.println(dormInfos.get(0));
+            Thread.sleep(1*60*1000);
         }
-
-        File all_washer_info = useAPI.set_info("DormInfo.csv");
-        useAPI.writeCSV(all_washer_info,master_info);
-
-        ArrayList<ArrayList<String>> dormInfos = useAPI.extractCSV(all_washer_info);
-        System.out.println(dormInfos.get(0));
-
-
-
-
-
-
-
     }
 
 
