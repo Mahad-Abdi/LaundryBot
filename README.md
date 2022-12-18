@@ -1,10 +1,9 @@
 # LaundryBot
 ## Overview of Our Project
-Our project is to use Twilio API to send the updated information to our clients, mainly Boston College students who live on campus. 
-We are hoping that by creating such server so our students can avoid the process of waiting for laundry.
+LaundryBot is a text bot that provides laundry machine availability to Boston College students. It informs them of the availability of washing machines in their residential hall as well as provides reminders of when a washer will be available and when their laundry cycle is done. 
 
 ## Running Instruction of the project
-First ensure that you have a Java run IDE, we used IntelliJ and we recommend that one for those intending to run our projects. Then click open with the github button, then the project will be open in the IDE, then click to start the “run main”, a laundry texting bot will be ready to use. Currently we are only supporting to collect and send laundry information for 10 residential halls, but we are hoping to add more as we are advertising our projects to the students.
+To use LaundryBot, you'll need to have a Twilio account with a valid ID and auth token. Once you have these, simply add them to lines 16 and 17 of the LaundryBot.java file located in src/main/java. Then, run the main method of LaundryBot.java and send a text message to "+14782495460" to get started. If you are running this for grading purposes, for convenience please email abdima@bc.edu so that you can use their id and auth token. 
 
 ## Overview of Our Design
-The design consists of two parts: the Twilio API connects to the server by collecting the user's laundry information, and the second part is to make a HTTP GET request to the website that contains the laundry information of the hall. More details of our design is included in a report attached below that we submitted for class, and there are sufficient comments in the file that can help understand the format converting process.
+Our design for LaundryBot includes two main components: the communication aspect, which is handled using the Twilio API for sending and receiving SMS messages, and the information aspect, which is handled using the laundryview.com API to gather data on laundry machine availability. For more details on our design, please see the attached report, which includes additional information to help you understand how the program works.
