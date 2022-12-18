@@ -1,27 +1,24 @@
 import com.twilio.Twilio;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.time.ZoneId;
+import java.lang.reflect.Array;
 import java.time.ZonedDateTime;
 import com.twilio.base.ResourceSet;
 import com.twilio.rest.api.v2010.account.Message;
 import com.twilio.type.PhoneNumber;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
+import java.util.*;
 
 
 public class LaundryBot {
-    public static final String ACCOUNT_SID = "ACb58307342cb8bc69695700b6f9c97bd0";
-    public static final String AUTH_TOKEN = "aa944a0427841259e70e6463bc3a1237";
+    public static final String ACCOUNT_SID = System.getenv("TWILIO_ACCOUNT_SID");
+    public static final String AUTH_TOKEN = System.getenv("TWILIO_AUTH_TOKEN");
     private static final String TWILIO_PHONE_NUMBER = "+14782495460";
     public static HashMap<String, String> usersResidentialHall = new HashMap<>();
-    public static ArrayList<ArrayList<String>> machineData = new ArrayList<>();
+    public static ArrayList<ArrayList<String>> csvData = new ArrayList<>();
+    public static HashMap<String, List<String>> machineData = new HashMap<>();
     public static String minutes = "";
     public static boolean reminderOffered = false;
     public static Boolean reminderRequested = false;
@@ -31,13 +28,20 @@ public class LaundryBot {
     public static final String INTRODUCTION_MESSAGE = "Hello. Welcome to the LaundryBot. What residential hall do you live in? The LaundryBot currently works for the following residential halls." + "\n" + "GreyCliff, Mods, Gabelli, Voute";
     public static final String OPTIONS_MESSAGE = "You can ask the LaundryBot " + "\n" + "1)If washing machines are available / when they will become an available "  + "\n" + "2) To set a reminder for when a washing machine becomes available "  + "\n" + "3) Set a reminder when your laundry is done  ";
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, InterruptedException {
         availableHalls.add("greycliff"); availableHalls.add("voute"); availableHalls.add("mods"); availableHalls.add("gabelli");
+        availableHalls.add("fitzpatrick"); availableHalls.add("williams"); availableHalls.add("stayer"); availableHalls.add("walsh");
+        availableHalls.add("2150");
+        APICaller caller = new APICaller();
+        csvData = extractCSV();
+        machineData = convertToMap(csvData);
+//        caller.extractData();
         combine();
 
     }
 
-    public static void combine() throws IOException {
+    // Combines all of the necessary functions to receive, handle, and send messages
+    public static void combine() throws IOException, InterruptedException {
         Twilio.init(ACCOUNT_SID, AUTH_TOKEN);
         // Create a Date object to store the time of the last message check
         ZonedDateTime lastMessageCheck = ZonedDateTime.now();
@@ -45,10 +49,13 @@ public class LaundryBot {
         long updateTimeCheck = System.currentTimeMillis();
 
         // Run the chat bot indefinitely
+        APICaller caller = new APICaller();
         while (true) {
             //  At a regular interval update the dorm room date
             if(updateTimeCheck >= (updateTimeCheck + (10 * 60 * 1000))) {
-                machineData = extractCSV();
+                caller.extractData();
+                csvData = extractCSV();
+                machineData = convertToMap(csvData);
                 updateTimeCheck = System.currentTimeMillis();
             }
 
@@ -70,7 +77,7 @@ public class LaundryBot {
                 if(requestType == 4 || requestType == 5) {
                     String replyMessage = handleMessage(messageBody, fromPhoneNumber, requestType);
                     sendMessage(replyMessage,fromPhoneNumber);
-                    String delayedMessage = generateDelayedMessage(requestType);
+                    String delayedMessage = generateReminderMessage(requestType);
                     if(requestType == 4) {
                         sendScheduledMessage(delayedMessage, fromPhoneNumber, Integer.valueOf(minutes));
                     } else  {
@@ -94,16 +101,11 @@ public class LaundryBot {
             if(mostRecentDate != null)
                 lastMessageCheck = mostRecentDate;
 
-            //  Sleep for a short period of time before checking for new messages again
-//            try {
-//                Thread.sleep(500);
-//            } catch (InterruptedException e) {
-//                // Do nothing
-//            }
 
         }
     }
 
+    // Converts csv file into a list
     private static ArrayList<ArrayList<String>> extractCSV() throws IOException {
         ArrayList<ArrayList<String>> data = new ArrayList<>();
         String testRow;
@@ -117,7 +119,26 @@ public class LaundryBot {
         }
         return data;
     }
+    // Determines message type using keywords
+    public static int determineMessageType(String message) {
+        //
+        message = message.toLowerCase();
+        if(message.contains("hall") || availableHalls.contains(message)) {
+            return 2;
+        }else if (message.contains("when") || message.contains("washing+machine") || message.contains("available?") || message.contains("is")) {
+            return 3;
+        }else if(message.contains("yes") && reminderOffered) {
+            reminderRequested = true;
+            reminderOffered = false;
+            return 4;
+        } else if (message.contains("timer") || message.contains("started")) {
+            return 5;
+        }
 
+        return 1;
+    }
+
+    // Generated a response message based on the message type
     public static String handleMessage(String messageBody, String phoneNumber, int requestType) {
         String responseMessage = "";
         // If it is a new user ask them their hall
@@ -142,7 +163,6 @@ public class LaundryBot {
 
                 // This is where we have to add logic to check the availability of the washing machine
             } else if(requestType == 3){
-                System.out.println("got here to 3 ");
                 responseMessage = checkAvailablity(usersResidentialHall.get(phoneNumber));
             } else if(requestType == 4) {
                 // This is where we have to add the logic to check the availability of the washing machine
@@ -158,33 +178,15 @@ public class LaundryBot {
         return responseMessage;
 
     }
-    public static int determineMessageType(String message) {
-        //
-        message = message.toLowerCase();
-        System.out.println("here is the message " + message);
-        if(message.contains("hall") || availableHalls.contains(message)) {
-            return 2;
-        }else if (message.contains("when") || message.contains("washing+machine") || message.contains("available?") || message.contains("is")) {
-            return 3;
-        }else if(message.contains("yes") && reminderOffered) {
-            reminderRequested = true;
-            reminderOffered = false;
-            return 4;
-        } else if (message.contains("timer") || message.contains("started")) {
-            return 5;
-        }
-
-        return 1;
-    }
-    public static String generateDelayedMessage(int requestType) {
+    // Generates the type of delayed message
+    public static String generateReminderMessage(int requestType) {
         if(requestType == 4){
-            System.out.println("request type 4 is returned");
             return "A washing machine is now available!";
         }
         System.out.println("request type 5 is returned");
         return "Your laundry is done";
     }
-
+// Sends message using Twilio Message creator
     public static void sendMessage(String message, String phoneNumber) {
         if(!phoneNumber.equals(TWILIO_PHONE_NUMBER)) {
             Twilio.init(ACCOUNT_SID, AUTH_TOKEN);
@@ -196,49 +198,60 @@ public class LaundryBot {
         }
     }
 
-
+// SChedules a message to be sent (minutes) into the future
     public static void sendScheduledMessage(String message, String phoneNumber, int minutes) {
-//        System.out.println("the minutes for the scheduled send " + minutes);
         final ZonedDateTime time = ZonedDateTime.now().plus(minutes,ChronoUnit.MINUTES);
         System.out.println("the scheduled time " + time);
         Twilio.init(ACCOUNT_SID, AUTH_TOKEN);
 
         Message responseMessage = Message.creator(
+
                 new PhoneNumber(phoneNumber),
                 "MG257f14c5e835f375d38a6f4e25347bbf",
                 message
         ).setSendAt(time).setScheduleType(Message.ScheduleType.FIXED).create();
-        System.out.println("created a message previously so wait it out");
 
     }
-
+// Converts the list representation of the csv into a hashmap
+    public static HashMap<String, List<String>> convertToMap(List<ArrayList<String>> csvData) {
+        HashMap<String, List<String>> hmap = new HashMap<>();
+        for(ArrayList<String> ls: csvData) {
+            String key = ls.get(1);
+            key = key.substring(1,key.length()-1).toLowerCase();
+            ArrayList<String> values = new ArrayList<String>(ls.subList(2, ls.size()));
+            for(int i = 0; i < values.size(); i++) {
+                String element = values.get(i);
+                element = element.substring(1,element.length()-1);
+                values.set(i, element);
+            }
+            hmap.put(key,values);
+        }
+        for (String key : hmap.keySet()) {
+            List<String> value = hmap.get(key);
+            System.out.println(key + ": " + value);
+        }
+        return hmap;
+    }
+// Using the hashmap checks the availability of washing machines in a residentiall hall
     public static String checkAvailablity(String hall) {
         String returnMessage = "";
-        for(ArrayList<String> ls: machineData) {
-            String checkHall = ls.get(1).toLowerCase();
-            checkHall = checkHall.substring(1,checkHall.length()-1);
-            System.out.println("checkHall " + checkHall + " hall " + hall);
-            System.out.println(java.util.Arrays.toString(checkHall.toCharArray()));
-            System.out.println(java.util.Arrays.toString(hall.toCharArray()));
-            System.out.println();
             // Checks if the hall from the list is the same as input hall
-            if(checkHall.equals(hall)) {
-                String numberOfMachines = ls.get(2);
-                numberOfMachines = numberOfMachines.substring(1,numberOfMachines.length()-1);
+            if(machineData.containsKey(hall)) {
+                ArrayList<String> values = (ArrayList<String>) machineData.get(hall);
+                String numberOfMachines = values.get(0);
                 int countMachines = Integer.valueOf(numberOfMachines);
                 if(countMachines > 0){
                     returnMessage = "There are " + countMachines + " washers available.";
                 }
                 else {
-                    minutes = ls.get(3);
-                    minutes = minutes.substring(1,minutes.length()-1);
+                    String minutesLeft = values.get(1);
                     reminderOffered = true;
                      returnMessage = "A washing machine will be available in " + minutes + " minutes " + "\n" + "Would you like to set a reminder?";
                 }
             } else {
                 returnMessage = "Your residential hall is not currently supported";
             }
-        }
+
         return returnMessage;
     }
 

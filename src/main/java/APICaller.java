@@ -37,6 +37,13 @@ public class APICaller {
         DormID.put("GreyCliff",2980918);
         DormID.put("Mods",2980920);
         DormID.put("Voute",2980923);
+        DormID.put("Walsh",2980924);
+        DormID.put("2150",29809028);
+        DormID.put("stayer",2980926);
+        DormID.put("Fitzpatrick",298098);
+        DormID.put("Keyes South",298095);
+        DormID.put("welch",2980912);
+        DormID.put("williams",2980913);
     }
     private static HttpURLConnection conn;
     private File all_washer_info;
@@ -110,7 +117,7 @@ public class APICaller {
      * @return
      */
     private ArrayList<String> getContent(String object) {
-        ArrayList<String> dataParsed = new ArrayList<String>();
+        ArrayList<String> dataParsed = new ArrayList<>();
         for(int i = 0; i < object.length(); i ++) {
             int startIndex = 0;
             int endIndex = 0;
@@ -266,14 +273,15 @@ public class APICaller {
     private void rescrape(int ttl) {
 
     }
-    public static void main(String[] args) throws IOException, InterruptedException {
+
+    public  void extractData() throws IOException, InterruptedException {
         while (true) {
             APICaller useAPI = new APICaller();
             // This is the link for voute, 66 says its unavailable so I commented out the line below
             URL url = new URL("https://www.laundryview.com/api/currentRoomData?school_desc_key=12&location=");
 
             ArrayList<ArrayList<String>> master_info = new ArrayList<>();
-            String[] dormInfo = {"GreyCliff", "Mods", "Gabelli", "Voute"};
+            String[] dormInfo = {"GreyCliff", "Mods", "Gabelli", "Voute", "Walsh", "2150","2nd_floor_2k","stayer", "Fitzpatrick", "Keyes South", "williams",};
             for (int i = 0; i < dormInfo.length; i++) {
                 ArrayList<String> AvailableInfo = new ArrayList<>();
                 AvailableInfo = useAPI.get_laundry_info_building(url, DormID, dormInfo[i]);
@@ -288,6 +296,11 @@ public class APICaller {
             System.out.println(dormInfos.get(0));
             Thread.sleep(1*60*1000);
         }
+    }
+
+
+    public APICaller() {
+
     }
 
 
